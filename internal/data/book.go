@@ -25,6 +25,7 @@ type Book struct {
 	File        *string   `db:"file" json:"file,omitempty"`
 	Year        int       `db:"year" json:"year"`
 	Season      string    `db:"season" json:"season"`
+	Degree      *int      `db:"degree" json:"degree,omitempty"`
 	CreatedAt   time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt   time.Time `db:"updated_at" json:"updated_at"`
 }
@@ -89,7 +90,7 @@ func (b *BookDB) InsertBook(book *Book, discussantIDs, advisorIDs, studentIDs []
 	}
 
 	query, args, err := QB.Insert("book").
-		Columns("id,name, description, file, year, season").
+		Columns("id,name, description, file, year, season", "degree").
 		Values(
 			book.ID,
 			book.Name,
@@ -97,6 +98,7 @@ func (b *BookDB) InsertBook(book *Book, discussantIDs, advisorIDs, studentIDs []
 			book.File,
 			book.Year,
 			book.Season,
+			book.Degree,
 		).
 		Suffix("RETURNING id, created_at, updated_at").
 		ToSql()
@@ -161,6 +163,7 @@ func (b *BookDB) GetBookWithDetails(bookID uuid.UUID) (*BookWithDetails, error) 
 		"b.year",
 		"b.season",
 		"b.created_at",
+		"COALESCE(b.degree, NULL) AS degree",
 		"b.updated_at",
 		"discussant.id AS discussant_id",
 		"COALESCE(discussant.name, '') AS discussant_name",
@@ -278,6 +281,7 @@ func (b *BookDB) UpdateBook(book *Book, discussantIDs, advisorIDs, studentIDs []
 		Set("description", book.Description).
 		Set("file", book.File).
 		Set("year", book.Year).
+		Set("degree", book.Degree).
 		Set("season", book.Season).
 		Set("updated_at", time.Now()).
 		Where(squirrel.Eq{"id": book.ID}).
@@ -449,6 +453,7 @@ func (b *BookDB) ListBooks(queryParams url.Values) ([]Book, *utils.Meta, error) 
 		"b.id",
 		"b.name",
 		"COALESCE(b.description, '') AS description",
+		"COALESCE(b.degree, NULL) AS degree",
 	}
 
 	meta, err := utils.BuildQuery(&books, table, nil, bookJoinColumns, searchCols, queryParams, nil)

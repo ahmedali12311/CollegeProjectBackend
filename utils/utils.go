@@ -112,9 +112,6 @@ func SaveFile(file io.Reader, table string, filename string) (string, error) {
 	}
 
 	// Print the full path
-	fmt.Println("Full path:", fullPath)
-
-	// Print the folders leading up to the uploads directory
 	uploadsDir := "uploads"
 	currentDir := fullPath
 
@@ -128,7 +125,6 @@ func SaveFile(file io.Reader, table string, filename string) (string, error) {
 	}
 
 	// Generate new filename
-	fmt.Print("*from the machine *file is being saved at : ", fullPath)
 
 	randomNumber := rand.Intn(1000)
 	timestamp := time.Now().Unix()

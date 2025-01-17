@@ -14,7 +14,7 @@ CREATE TABLE pre_project (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ALTER TABLE pre_project
-ADD COLUMN degree VARCHAR(255);
+ADD COLUMN degree int;
 
 -- Create an index on the 'project_owner' column in the 'pre_project' table
 CREATE INDEX idx_pre_project_project_owner ON pre_project(project_owner);

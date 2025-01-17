@@ -4,6 +4,7 @@ CREATE TABLE book (
     description TEXT,
     file        VARCHAR(255),
     year        INTEGER NOT NULL,
+    degree int,
     season      VARCHAR(10) CHECK (season IN ('spring', 'fall')) NOT NULL,
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP

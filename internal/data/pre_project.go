@@ -40,11 +40,6 @@ func ValidatePreProject(v *validator.Validator, preProject *PreProject, students
 	v.Check(len(preProject.Name) >= 3, "name", "يجب أن يكون اسم المشروع على الأقل 3 أحرف")
 	v.Check(len(preProject.Name) <= 600, "name", "يجب أن يكون اسم المشروع أقل من 600 حرف")
 
-	if *preProject.Degree != 0 {
-		v.Check(*preProject.Degree <= 100, "degree", "يجب ان تكون درجة المشروع اقل من 100 درجة")
-		v.Check(*preProject.Degree > 0, "degree", "يجب ان تكون درجة المشروع موجبة")
-
-	}
 	v.Check(*preProject.Description != "", "name", "اسم المشروع مطلوب")
 
 	v.Check(len(*preProject.Description) >= 10, "description", "يجب أن يكون وصف المشروع على الأقل 10 أحرف")
@@ -730,6 +725,55 @@ func (p *PreProjectDB) RemoveAllDiscussants(preProjectID uuid.UUID) error {
 	_, err := p.db.Exec("DELETE FROM pre_project_discussants WHERE pre_project_id = $1", preProjectID)
 	if err != nil {
 		return fmt.Errorf("failed to remove discussants: %w", err)
+	}
+	return nil
+}
+
+func (p *PreProjectDB) UpdateCanUpdate(canUpdate bool, id uuid.UUID) error {
+	tx, err := p.db.Beginx()
+	if err != nil {
+		return fmt.Errorf("failed to start transaction: %w", err)
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+		err = tx.Commit()
+	}()
+	lockQuery, lockArgs, err := QB.Select("*").
+		From("pre_project").
+		Where(squirrel.Eq{"id": id}).
+		ToSql()
+	if err != nil {
+		return fmt.Errorf("failed to build lock query: %w", err)
+	}
+	// to prevent datarrace
+	_, err = tx.Exec(lockQuery+" FOR UPDATE", lockArgs...)
+	if err != nil {
+		return fmt.Errorf("failed to lock pre-project: %w", err)
+	}
+	updateQuery, updateArgs, err := QB.Update("pre_project").
+		Set("can_update", canUpdate).
+		Set("updated_at", time.Now()).
+		Where(squirrel.Eq{"id": id}).
+		ToSql()
+	if err != nil {
+		return fmt.Errorf("failed to build update query: %w", err)
+	}
+
+	result, err := tx.Exec(updateQuery, updateArgs...)
+	if err != nil {
+		return fmt.Errorf("failed to update pre-project: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to check rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("no pre-project found to update")
 	}
 	return nil
 }

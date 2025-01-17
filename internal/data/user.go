@@ -71,11 +71,11 @@ func ValidateUser(v *validator.Validator, user *User, isAdmin bool, fields ...st
 			v.Check(len(user.Name) <= 100, "name", "يجب أن يكون الاسم أقل من 100 حرف")
 		case "email":
 			v.Check(user.Email != "", "email", "البريد الإلكتروني مطلوب")
-			if isAdmin {
-				v.Check(validator.Matches(user.Email, validator.GeneralEmailRX), "email", "تنسيق البريد الإلكتروني غير صالح")
-			} else {
-				v.Check(validator.Matches(user.Email, validator.EmailRX), "email", "يجب أن يكون البريد الإلكتروني من نطاق uob.edu.ly")
-			}
+			// if isAdmin {
+			// 	v.Check(validator.Matches(user.Email, validator.GeneralEmailRX), "email", "تنسيق البريد الإلكتروني غير صالح")
+			// } else {
+			// 	v.Check(validator.Matches(user.Email, validator.EmailRX), "email", "يجب أن يكون البريد الإلكتروني من نطاق uob.edu.ly")
+			// }
 		case "password":
 			if user.Password != "" {
 				v.Check(len(user.Password) >= 8, "password", "كلمة المرور قصيرة جداً")
@@ -136,8 +136,8 @@ func (u *UserDB) GetUser(userID uuid.UUID) (*User, error) {
 	query, args, err := QB.Select(
 		"u.id", "u.name", "u.email", "u.password", "u.verified", "u.verification_code", "u.verification_code_expiry",
 		fmt.Sprintf("CASE WHEN NULLIF(u.image, '') IS NOT NULL THEN FORMAT('%s/%%s', u.image) ELSE NULL END AS image", Domain), // Include domain before file
-		"u.created_at", "u.updated_at", "u.graduation_semester",
-		"ARRAY_AGG(r.name) AS roles", // Use r.name instead of r.role_name
+		"u.created_at", "u.updated_at",
+		"ARRAY_AGG(r.name) AS roles",
 	).
 		From("users u").
 		LeftJoin("user_roles ur ON u.id = ur.user_id").

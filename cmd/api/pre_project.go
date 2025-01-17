@@ -29,15 +29,15 @@ func (app *application) CreatePreProjectHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// existingPreProject, err := app.Model.PreProjectDB.CheckExistingPreProject(user.ID)
-	// if err != nil {
-	// 	app.serverErrorResponse(w, r, err)
-	// 	return
-	// }
-	// if existingPreProject != nil {
-	// 	app.errorResponse(w, r, http.StatusConflict, "You already have an existing pre-project")
-	// 	return
-	// }
+	existingPreProject, err := app.Model.PreProjectDB.CheckExistingPreProject(user.ID)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	if existingPreProject != nil {
+		app.errorResponse(w, r, http.StatusConflict, "You already have an existing pre-project")
+		return
+	}
 
 	name := r.FormValue("name")
 	description := r.FormValue("description")
@@ -126,42 +126,42 @@ func (app *application) CreatePreProjectHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// similarityCheckResp, err := utils.CheckProjectSimilarity(name, description, 0.3)
-	// if err != nil {
-	// 	app.serverErrorResponse(w, r, err)
-	// 	return
-	// }
+	similarityCheckResp, err := utils.CheckProjectSimilarity(name, description, 0.3)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
 
-	// var highSimilarityProjects []map[string]interface{}
+	var highSimilarityProjects []map[string]interface{}
 
-	// for _, project := range similarityCheckResp.SimilarProjects {
-	// 	similarityScore, ok := project["similarity_score"].(float64)
-	// 	sourceTable, tableOk := project["source_table"].(string)
-	// 	if !ok || !tableOk {
-	// 		continue
-	// 	}
+	for _, project := range similarityCheckResp.SimilarProjects {
+		similarityScore, ok := project["similarity_score"].(float64)
+		sourceTable, tableOk := project["source_table"].(string)
+		if !ok || !tableOk {
+			continue
+		}
 
-	// 	if similarityScore > 50 {
-	// 		similarProject := map[string]interface{}{
-	// 			"project_id":          project["project_id"],
-	// 			"project_name":        project["project_name"],
-	// 			"project_description": project["project_description"],
-	// 			"similarity_score":    similarityScore,
-	// 			"source_table":        sourceTable,
-	// 		}
-	// 		highSimilarityProjects = append(highSimilarityProjects, similarProject)
-	// 	}
-	// }
+		if similarityScore > 50 {
+			similarProject := map[string]interface{}{
+				"project_id":          project["project_id"],
+				"project_name":        project["project_name"],
+				"project_description": project["project_description"],
+				"similarity_score":    similarityScore,
+				"source_table":        sourceTable,
+			}
+			highSimilarityProjects = append(highSimilarityProjects, similarProject)
+		}
+	}
 
-	// if len(highSimilarityProjects) > 0 {
-	// 	response := utils.Envelope{
-	// 		"error":            "Similar projects found",
-	// 		"similar_projects": highSimilarityProjects,
-	// 		"message":          "Project is too similar to existing projects. Please modify your project.",
-	// 	}
-	// 	app.errorResponse(w, r, http.StatusConflict, response)
-	// 	return
-	// }
+	if len(highSimilarityProjects) > 0 {
+		response := utils.Envelope{
+			"error":            "Similar projects found",
+			"similar_projects": highSimilarityProjects,
+			"message":          "Project is too similar to existing projects. Please modify your project.",
+		}
+		app.errorResponse(w, r, http.StatusConflict, response)
+		return
+	}
 
 	err = app.Model.PreProjectDB.InsertPreProject(&preProject, studentIDs, advisorIDs)
 	if err != nil {
@@ -235,17 +235,16 @@ func (app *application) UpdatePreProjectHandler(w http.ResponseWriter, r *http.R
 		ProjectOwner: existingPreProject.PreProject.ProjectOwner,
 		UpdatedAt:    time.Now(),
 	}
-	// nameChanged := false
-	// descriptionChanged := false
+	nameChanged := false
+	descriptionChanged := false
 
 	name := r.FormValue("name")
 	if name != "" {
 		preProject.Name = name
-		// nameChanged = true
+		nameChanged = true
 	} else {
 		preProject.Name = existingPreProject.PreProject.Name
 	}
-
 	canUpdateStr := r.FormValue("can_update")
 	var canUpdate bool
 	if canUpdateStr != "" {
@@ -262,7 +261,7 @@ func (app *application) UpdatePreProjectHandler(w http.ResponseWriter, r *http.R
 	description := r.FormValue("description")
 	if description != "" {
 		preProject.Description = &description
-		// descriptionChanged = true
+		descriptionChanged = true
 	} else {
 		preProject.Description = existingPreProject.PreProject.Description
 	}
@@ -430,44 +429,44 @@ func (app *application) UpdatePreProjectHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// if nameChanged || descriptionChanged {
-	// 	similarityCheckResp, err := utils.CheckProjectSimilarity(preProject.Name, *preProject.Description, 0.3)
-	// 	if err != nil {
-	// 		app.serverErrorResponse(w, r, err)
-	// 		return
-	// 	}
+	if nameChanged || descriptionChanged {
+		similarityCheckResp, err := utils.CheckProjectSimilarity(preProject.Name, *preProject.Description, 0.3)
+		if err != nil {
+			app.serverErrorResponse(w, r, err)
+			return
+		}
 
-	// 	var highSimilarityProjects []map[string]interface{}
+		var highSimilarityProjects []map[string]interface{}
 
-	// 	for _, project := range similarityCheckResp.SimilarProjects {
-	// 		similarityScore, ok := project["similarity_score"].(float64)
-	// 		sourceTable, tableOk := project["source_table"].(string)
-	// 		if !ok || !tableOk {
-	// 			continue
-	// 		}
+		for _, project := range similarityCheckResp.SimilarProjects {
+			similarityScore, ok := project["similarity_score"].(float64)
+			sourceTable, tableOk := project["source_table"].(string)
+			if !ok || !tableOk {
+				continue
+			}
 
-	// 		if similarityScore > 50 {
-	// 			similarProject := map[string]interface{}{
-	// 				"project_id":          project["project_id"],
-	// 				"project_name":        project["project_name"],
-	// 				"project_description": project["project_description"],
-	// 				"similarity_score":    similarityScore,
-	// 				"source_table":        sourceTable,
-	// 			}
-	// 			highSimilarityProjects = append(highSimilarityProjects, similarProject)
-	// 		}
-	// 	}
+			if similarityScore > 50 {
+				similarProject := map[string]interface{}{
+					"project_id":          project["project_id"],
+					"project_name":        project["project_name"],
+					"project_description": project["project_description"],
+					"similarity_score":    similarityScore,
+					"source_table":        sourceTable,
+				}
+				highSimilarityProjects = append(highSimilarityProjects, similarProject)
+			}
+		}
 
-	// 	if len(highSimilarityProjects) > 0 {
-	// 		response := utils.Envelope{
-	// 			"error":            "Similar projects found",
-	// 			"similar_projects": highSimilarityProjects,
-	// 			"message":          "Project is too similar to existing projects. Please modify your project.",
-	// 		}
-	// 		app.errorResponse(w, r, http.StatusConflict, response)
-	// 		return
-	// 	}
-	// }
+		if len(highSimilarityProjects) > 0 {
+			response := utils.Envelope{
+				"error":            "Similar projects found",
+				"similar_projects": highSimilarityProjects,
+				"message":          "Project is too similar to existing projects. Please modify your project.",
+			}
+			app.errorResponse(w, r, http.StatusConflict, response)
+			return
+		}
+	}
 
 	err = app.Model.PreProjectDB.UpdatePreProject(preProject, advisors, students, discutants)
 	if err != nil {
@@ -634,6 +633,17 @@ func (app *application) MovePreProjectToBookHandler(w http.ResponseWriter, r *ht
 		app.handleRetrievalError(w, r, err)
 		return
 	}
+	degreeStr := r.FormValue("degree")
+	Degree, err := strconv.Atoi(degreeStr)
+	if err != nil {
+		app.badRequestResponse(w, r, errors.New("invalid Degree"))
+		return
+	}
+	if Degree == 0 {
+		app.badRequestResponse(w, r, errors.New("لا يمكن ترك الدرجة فارغة"))
+		return
+	}
+
 	cleanedFilePath := ""
 	if preProject.PreProject.File != nil {
 		cleanedFilePath = strings.TrimPrefix(*preProject.PreProject.File, data.Domain+"/")
@@ -647,6 +657,7 @@ func (app *application) MovePreProjectToBookHandler(w http.ResponseWriter, r *ht
 		File:        &cleanedFilePath,
 		Year:        preProject.PreProject.Year,
 		Season:      preProject.PreProject.Season,
+		Degree:      preProject.PreProject.Degree,
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
@@ -660,6 +671,7 @@ func (app *application) MovePreProjectToBookHandler(w http.ResponseWriter, r *ht
 		Discussants[i] = dis.DiscussantID
 	}
 	advisorIDs := []uuid.UUID{*preProject.PreProject.AcceptedAdvisor}
+	fmt.Print("ASDASD")
 
 	v := validator.New()
 	data.ValidateBook(v, book, studentIDs, advisorIDs, Discussants, false)
@@ -689,5 +701,28 @@ func (app *application) MovePreProjectToBookHandler(w http.ResponseWriter, r *ht
 	utils.SendJSONResponse(w, http.StatusCreated, utils.Envelope{
 		"book":    createdBook,
 		"message": "Pre-project successfully moved to book",
+	})
+}
+func (app *application) CanUpdate(w http.ResponseWriter, r *http.Request) {
+	canupdate := r.FormValue("Can_update")
+	fmt.Println("Received Can_update value:", canupdate) // Debugging line
+	var canUpdate bool
+
+	canUpdate, err := strconv.ParseBool(canupdate)
+	if err != nil {
+		app.errorResponse(w, r, http.StatusBadRequest, "Invalid can_update value")
+		return
+	}
+
+	id := uuid.MustParse(r.PathValue("id"))
+
+	err = app.Model.PreProjectDB.UpdateCanUpdate(canUpdate, id)
+	if err != nil {
+		app.errorResponse(w, r, http.StatusBadRequest, "Error while updating the pre project canUpdate!")
+		return
+	}
+
+	utils.SendJSONResponse(w, http.StatusOK, utils.Envelope{
+		"message": "Pre-project successfully updated!",
 	})
 }

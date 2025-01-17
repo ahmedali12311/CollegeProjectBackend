@@ -17,11 +17,9 @@ import (
 
 func (app *application) SigninHandler(w http.ResponseWriter, r *http.Request) {
 
-	// Get the email and password from the request body
 	email := strings.ToLower(r.FormValue("email"))
 	password := r.FormValue("password")
 
-	// Validate the input
 	if email == "" || password == "" {
 		app.errorResponse(w, r, http.StatusBadRequest, "Email and password must be provided")
 		return
@@ -232,18 +230,20 @@ func (app *application) SignupHandler(w http.ResponseWriter, r *http.Request) {
 		Name:     r.FormValue("name"),
 		Email:    strings.ToLower(r.FormValue("email")),
 		Password: r.FormValue("password"),
-		Verified: isAdmin, // Automatically mark as verified if the user is an admin
+		Verified: isAdmin,
 	}
 
 	if user.Name == "" || user.Email == "" || user.Password == "" {
 		app.errorResponse(w, r, http.StatusBadRequest, "Must fill all the fields")
 		return
 	}
-	data.ValidateUser(v, user, isAdmin, "name", "phone", "email", "password")
+
+	data.ValidateUser(v, user, isAdmin, "name", "email", "password")
 	if !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
+
 	hashedPassword, err := utils.HashPassword(user.Password)
 	if err != nil {
 		app.errorResponse(w, r, http.StatusInternalServerError, "Error hashing password")
@@ -474,17 +474,20 @@ func (app *application) RequestPasswordResetHandler(w http.ResponseWriter, r *ht
 		return
 	}
 	if time.Since(user.LastVerificationCodeSent) < 5*time.Minute {
+		// Calculate the remaining time
 		timeLeft := 5*time.Minute - time.Since(user.LastVerificationCodeSent)
 		minutes := int(timeLeft.Minutes())
 		seconds := int(timeLeft.Seconds()) % 60
 
-		app.errorResponse(w, r, http.StatusTooManyRequests, fmt.Sprintf("يرجى الانتظار %d دقيقة و %d ثانية قبل إرسال رمز التحقق", minutes, seconds))
+		// Respond with the remaining time
+		app.errorResponse(w, r, http.StatusTooManyRequests, fmt.Sprintf("يرجى انتظار %d دقيقة و %d ثانية قبل ارسال رسالة تاكيد", minutes, seconds))
 		return
 	}
-	// Generate verification code
+
 	verificationCode := utils.GenerateRandomCode()
 	user.VerificationCode = verificationCode
 	user.VerificationCodeExpiry = time.Now().Add(5 * time.Minute)
+	user.LastVerificationCodeSent = time.Now()
 
 	// Update the user with the new verification code and expiry time
 	if err := app.Model.UserDB.UpdateUser(user); err != nil {

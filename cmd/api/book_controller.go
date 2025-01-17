@@ -20,13 +20,22 @@ func (app *application) CreateBookHandler(w http.ResponseWriter, r *http.Request
 	description := r.FormValue("description")
 	yearStr := r.FormValue("year")
 	season := r.FormValue("season")
-
+	degree := 0
 	year, err := strconv.Atoi(yearStr)
 	if err != nil {
 		app.badRequestResponse(w, r, errors.New("invalid year"))
 		return
 	}
 
+	if r.FormValue("degree") != "" {
+		degreestr := r.FormValue("degree")
+
+		degree, err = strconv.Atoi(degreestr)
+		if err != nil {
+			app.badRequestResponse(w, r, errors.New("invalid degree"))
+			return
+		}
+	}
 	// Initialize maps to track added IDs and prevent duplicates
 	addedStudentIDs := make(map[uuid.UUID]bool)
 	addedAdvisorIDs := make(map[uuid.UUID]bool)
@@ -102,6 +111,7 @@ func (app *application) CreateBookHandler(w http.ResponseWriter, r *http.Request
 		Description: descriptionPtr,
 		Year:        year,
 		Season:      strings.ToLower(season),
+		Degree:      &degree,
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
@@ -278,7 +288,18 @@ func (app *application) UpdateBookHandler(w http.ResponseWriter, r *http.Request
 	} else {
 		book.Year = existingBookWithDetails.Book.Year
 	}
-
+	// Parse and update year if provided
+	degreeStr := r.FormValue("degree")
+	if degreeStr != "" {
+		Degree, err := strconv.Atoi(degreeStr)
+		if err != nil {
+			app.badRequestResponse(w, r, errors.New("invalid Degree"))
+			return
+		}
+		book.Degree = &Degree
+	} else {
+		book.Degree = existingBookWithDetails.Book.Degree
+	}
 	// Parse and update season if provided
 	season := r.FormValue("season")
 	if season != "" {
@@ -304,8 +325,11 @@ func (app *application) UpdateBookHandler(w http.ResponseWriter, r *http.Request
 		app.errorResponse(w, r, http.StatusBadRequest, "invalid file upload")
 		return
 	} else {
-		// No new file uploaded, keep the existing file
-		book.File = existingBookWithDetails.Book.File
+		if existingBookWithDetails.Book.File != nil {
+			*existingBookWithDetails.Book.File = strings.TrimPrefix(*existingBookWithDetails.Book.File, data.Domain+"/")
+		}
+
+		existingBookWithDetails.File = existingBookWithDetails.Book.File
 	}
 
 	// Determine if user lists are being updated

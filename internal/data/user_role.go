@@ -148,8 +148,7 @@ func (u *UserRoleDB) GetGraduationStudents(queryParams url.Values) ([]User, *uti
 	}
 	searchCols := []string{"users.name", "users.email"}
 	additionalFilters := []string{
-		"user_roles.role_id = 3",
-		"users.graduation_semester = TRUE",
+		"user_roles.role_id = 4",
 	}
 	var users []User
 

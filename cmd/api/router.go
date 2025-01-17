@@ -82,6 +82,7 @@ func (app *application) Router() *michi.Router {
 		sub.HandleFunc("POST transferbook/{id}", app.AuthMiddleware(app.AdminOnlyMiddleware(http.HandlerFunc(app.MovePreProjectToBookHandler))))
 		sub.HandleFunc("POST advisorresponse", app.AuthMiddleware(app.AdvisorsOnlyMiddleware(http.HandlerFunc(app.RespondToPreProjectHandler))))
 		sub.HandleFunc("DELETE preproject/{id}/reset-advisors", app.AuthMiddleware(app.AdminOnlyMiddleware(http.HandlerFunc(app.ResetPreProjectAdvisorsHandler))))
+		sub.HandleFunc("PUT canupdate/{id}", app.AuthMiddleware(app.AdminOnlyMiddleware(http.HandlerFunc(app.CanUpdate))))
 
 		sub.HandleFunc("POST chats", app.AuthMiddleware(app.ChatParticipantMiddleware(http.HandlerFunc(app.CreateChatHandler))))                       // Create a new chat
 		sub.HandleFunc("DELETE chats/{chat_id}", app.AuthMiddleware(app.ChatParticipantMiddleware(http.HandlerFunc(app.DeleteChatHandler))))           // Delete a specific chat message
